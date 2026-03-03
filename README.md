@@ -1,6 +1,6 @@
 # GNN Sudoku Solver
 
-A Graph Neural Network that learns to solve Sudoku puzzles, inspired by the `12_gnn-AbdulAzizYusuf` coursework.
+A Graph Neural Network that learns to solve Sudoku puzzles, inspired by my university mlp course.
 
 ## Architecture
 
