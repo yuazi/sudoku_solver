@@ -29,16 +29,21 @@ class Sudoku(TensorDataset):
         X = torch.load(os.path.join(folder, "features.pt"), weights_only=True)
         Y = torch.load(os.path.join(folder, "labels.pt"), weights_only=True)
 
-        # Reshape to (N, 81, 9)
-        X = X.view(-1, 9 * 9, 9)
-        Y = Y.view(-1, 9 * 9, 9)
-        Y = Y.argmax(dim=2)  # (N, 81) — digit indices 0-8
+        # Reshape and convert to indices (0 for empty, 1-9 for digits)
+        # X is (N, 81, 9) where each cell is a 9-dim one-hot for digits 1-9.
+        # If all zeros, it's an empty cell.
+        X = X.view(-1, 81, 9)
+        input_indices = torch.zeros(X.size(0), 81, dtype=torch.long)
+        has_digit = X.sum(dim=2) > 0
+        input_indices[has_digit] = X[has_digit].argmax(dim=1) + 1  # 1-9
+
+        Y = Y.view(-1, 81, 9).argmax(dim=2)  # (N, 81) — digit indices 0-8 (for target)
 
         n_train = 9000
         if train:
-            x, y = X[:n_train], Y[:n_train]
+            x, y = input_indices[:n_train], Y[:n_train]
         else:
-            x, y = X[n_train:], Y[n_train:]
+            x, y = input_indices[n_train:], Y[n_train:]
 
         super().__init__(x, y)
 

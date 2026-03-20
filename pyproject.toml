@@ -1,0 +1,27 @@
+[project]
+name = "sudoku_solver"
+version = "0.1.0"
+description = "A Graph Neural Network Sudoku solver"
+authors = [
+    { name = "Yusuf Abdulaziz", email = "yusuf.aziz20@gmail.com" }
+]
+dependencies = [
+    "torch",
+    "torchvision",
+    "matplotlib",
+    "numpy",
+]
+readme = "README.md"
+requires-python = ">=3.9"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']

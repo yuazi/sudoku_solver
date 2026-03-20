@@ -122,18 +122,18 @@ class GNN(nn.Module):
 
     Args:
         n_iters:          Number of message-passing iterations (default 7).
-        n_node_features:  Dimension of each node's hidden state (default 10).
-        n_node_inputs:    Input feature size per node — 9 (one-hot digit or zeros).
-        n_edge_features:  Message vector size (default 11).
-        n_node_outputs:   Output logits per node — 9 (one per digit).
+        n_node_features:  Dimension of each node's hidden state (default 64).
+        n_node_inputs:    Input feature size per node — 10 (digits 0-9).
+        n_edge_features:  Message vector size (default 64).
+        n_node_outputs:   Output logits per node — 9 (one per digit 1-9).
     """
 
     def __init__(
         self,
         n_iters: int = 7,
-        n_node_features: int = 10,
-        n_node_inputs: int = 9,
-        n_edge_features: int = 11,
+        n_node_features: int = 64,
+        n_node_inputs: int = 10,
+        n_edge_features: int = 64,
         n_node_outputs: int = 9,
     ):
         super().__init__()
@@ -144,17 +144,20 @@ class GNN(nn.Module):
         self.n_edge_features = n_edge_features
         self.n_node_outputs = n_node_outputs
 
+        # Learnable embeddings for digits 0-9
+        self.embedding = nn.Embedding(n_node_inputs, n_node_features)
+
         # Message network: MLP(src_state ∥ dst_state) → message vector
         self.msg_net = nn.Sequential(
-            nn.Linear(2 * n_node_features, 96),
+            nn.Linear(2 * n_node_features, 128),
             nn.ReLU(),
-            nn.Linear(96, 96),
+            nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(96, n_edge_features),
+            nn.Linear(128, n_edge_features),
         )
 
         # GRU cell: updates hidden state from (node_input ∥ aggregated_messages)
-        self.gru = nn.GRUCell(n_node_inputs + n_edge_features, n_node_features)
+        self.gru = nn.GRUCell(n_node_features + n_edge_features, n_node_features)
 
         # Output head: project hidden state to digit logits
         self.output_layer = nn.Linear(n_node_features, n_node_outputs)
@@ -170,18 +173,25 @@ class GNN(nn.Module):
         """Run message-passing for n_iters iterations.
 
         Args:
-            node_inputs: (n_nodes, n_node_inputs) — one-hot puzzle input.
+            node_inputs: (n_nodes, 10) — one-hot or (n_nodes,) — digit indices.
             src_ids:     (n_edges,) — source node indices.
             dst_ids:     (n_edges,) — destination node indices.
 
         Returns:
-            outputs: (n_iters, n_nodes, n_node_outputs) — logits at each iter.
+            outputs: (n_iters, n_nodes, 9) — logits at each iter.
         """
         n_nodes = node_inputs.size(0)
         device = node_inputs.device
 
-        # Hidden states initialised to zero
-        h = torch.zeros(n_nodes, self.n_node_features, device=device)
+        # Convert one-hot to indices if necessary
+        if node_inputs.dim() > 1 and node_inputs.size(1) > 1:
+            node_indices = node_inputs.argmax(dim=1)
+        else:
+            node_indices = node_inputs.squeeze().long()
+
+        # Embed initial board state
+        node_embeddings = self.embedding(node_indices)  # (N, H)
+        h = node_embeddings.clone()
 
         outputs = []
         for _ in range(self.n_iters):
@@ -193,9 +203,10 @@ class GNN(nn.Module):
             agg = torch.zeros(n_nodes, self.n_edge_features, device=device)
             agg.index_add_(0, dst_ids, messages)                     # (N, F)
 
-            # 3. Update hidden state via GRU
-            gru_input = torch.cat([node_inputs, agg], dim=1)         # (N, I+F)
-            h = self.gru(gru_input, h)                               # (N, H)
+            # 3. Update hidden state via GRU with residual connection
+            gru_input = torch.cat([node_embeddings, agg], dim=1)     # (N, H+F)
+            h_new = self.gru(gru_input, h)                           # (N, H)
+            h = h + h_new                                            # (N, H) - Residual
 
             # 4. Produce output logits
             outputs.append(self.output_layer(h))                     # (N, 9)

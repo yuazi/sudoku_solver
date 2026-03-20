@@ -30,19 +30,27 @@ sudoku_solver/
 ## Setup
 
 ```bash
+# Use python3 or python depending on your environment
+pip3 install -r requirements.txt
+# or
 pip install -r requirements.txt
 ```
 
 ## Validate locally
 
 ```bash
+python3 -m unittest discover -s tests -v
+# or
 python -m unittest discover -s tests -v
 ```
 
 ## Train
 
 ```bash
+python3 train.py
+# or
 python train.py
+
 # Downloads the dataset on first run (~20 MB), then trains for 30 epochs.
 # Best model is saved to gnn_sudoku.pth
 # Note: final solved fraction can vary by hardware/seed and training length.
@@ -50,20 +58,22 @@ python train.py
 
 Additional options:
 ```bash
-python train.py --epochs 50 --batch-size 32 --lr 0.001 --n-iters 7 --save my_model.pth
+python3 train.py --epochs 50 --batch-size 32 --lr 0.001 --n-iters 7 --hidden-dim 64 --save my_model.pth
 ```
 
 ## Solve a puzzle
 
 ```bash
 # Provide an 81-char string ('0' or '.' = unknown cell, '1'-'9' = given digit)
+python3 solve.py "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+# or
 python solve.py "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
 
 # Show step-by-step GNN iteration with matplotlib
-python solve.py --steps "530070000..."
+python3 solve.py --steps "530070000..."
 
 # Show side-by-side puzzle / solution plot
-python solve.py --plot "530070000..."
+python3 solve.py --plot "530070000..."
 ```
 
 If no puzzle is provided, a built-in example is used.

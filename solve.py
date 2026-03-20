@@ -24,8 +24,8 @@ from visualize import draw_sudoku, draw_solution_steps, board_from_string
 #  Solver logic
 # ---------------------------------------------------------------------------
 
-def load_model(model_path: str, n_iters: int = 7) -> GNN:
-    gnn = GNN(n_iters=n_iters)
+def load_model(model_path: str, n_iters: int = 7, hidden_dim: int = 64) -> GNN:
+    gnn = GNN(n_iters=n_iters, n_node_features=hidden_dim, n_edge_features=hidden_dim)
     state = torch.load(model_path, map_location="cpu", weights_only=True)
     gnn.load_state_dict(state)
     gnn.eval()
@@ -44,19 +44,20 @@ def solve_puzzle(gnn, puzzle_str: str):
         solution_str: 81-char string of the predicted solution.
         is_valid:     Whether the solution satisfies sudoku constraints and preserves givens.
     """
-    x = board_from_string(puzzle_str)          # (81, 9)
+    # Convert string to digit indices 0-9
+    puzzle_str = puzzle_str.replace(".", "0")
+    indices = torch.tensor([int(c) for c in puzzle_str], dtype=torch.long)
     src_ids, dst_ids = sudoku_edges()
 
     with torch.no_grad():
-        outputs = gnn(x, src_ids, dst_ids)     # (n_iters, 81, 9)
+        outputs = gnn(indices, src_ids, dst_ids)     # (n_iters, 81, 9)
 
     pred = outputs[-1].argmax(dim=1) + 1       # digits 1-9, shape (81,)
 
     # Enforce fixed clues from the input puzzle so givens are never overwritten.
-    given_mask = x.sum(dim=1) > 0
+    given_mask = indices > 0
     if given_mask.any():
-        given_digits = x[given_mask].argmax(dim=1) + 1
-        pred[given_mask] = given_digits
+        pred[given_mask] = indices[given_mask]
 
     solution_str = "".join(str(d.item()) for d in pred)
     is_valid = _check_solution(solution_str) and _respects_givens(puzzle_str, solution_str)
@@ -208,6 +209,8 @@ if __name__ == "__main__":
                         help="Path to trained model weights")
     parser.add_argument("--n-iters", type=int, default=7,
                         help="Number of GNN iterations (must match training)")
+    parser.add_argument("--hidden-dim", type=int, default=64,
+                        help="Hidden dimension size (must match training)")
     parser.add_argument("--steps",  action="store_true",
                         help="Show iterative solution refinement (matplotlib)")
     parser.add_argument("--plot",   action="store_true",
@@ -236,7 +239,7 @@ if __name__ == "__main__":
 
     # Load model
     try:
-        gnn = load_model(args.model, n_iters=args.n_iters)
+        gnn = load_model(args.model, n_iters=args.n_iters, hidden_dim=args.hidden_dim)
     except FileNotFoundError:
         print(f"ERROR: model file '{args.model}' not found.")
         print("Run  python train.py  first to train the model.")
