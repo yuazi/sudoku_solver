@@ -10,6 +10,9 @@ dist/
 .venv/
 venv/
 
+# macOS
+.DS_Store
+
 # IDE/editor files
 .idea/
 .vscode/
@@ -17,4 +20,3 @@ venv/
 # Local datasets and model checkpoints
 data/sudoku/
 *.pth
-
