@@ -207,8 +207,8 @@ if __name__ == "__main__":
                         help="81-char puzzle string ('0' or '.' = empty cell)")
     parser.add_argument("--model",   default="gnn_sudoku.pth",
                         help="Path to trained model weights")
-    parser.add_argument("--n-iters", type=int, default=7,
-                        help="Number of GNN iterations (must match training)")
+    parser.add_argument("--n-iters", type=int, default=16,
+                        help="Message-passing rounds at inference (may exceed the 7 used in training)")
     parser.add_argument("--hidden-dim", type=int, default=64,
                         help="Hidden dimension size (must match training)")
     parser.add_argument("--steps",  action="store_true",
