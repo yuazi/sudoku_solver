@@ -203,10 +203,10 @@ class GNN(nn.Module):
             agg = torch.zeros(n_nodes, self.n_edge_features, device=device)
             agg.index_add_(0, dst_ids, messages)                     # (N, F)
 
-            # 3. Update hidden state via GRU with residual connection
+            # 3. Update hidden state via GRU. Its update gate already mixes in the
+            #    old state; adding h on top again doubles h every round.
             gru_input = torch.cat([node_embeddings, agg], dim=1)     # (N, H+F)
-            h_new = self.gru(gru_input, h)                           # (N, H)
-            h = h + h_new                                            # (N, H) - Residual
+            h = self.gru(gru_input, h)                               # (N, H)
 
             # 4. Produce output logits
             outputs.append(self.output_layer(h))                     # (N, 9)

@@ -126,7 +126,19 @@ The project uses the SATNet Sudoku dataset hosted at `powei.tw` and downloads it
 
 ## Results
 
-The training script reports validation solved fraction per epoch and final test solved fraction after loading the best checkpoint. Results can vary by hardware, seed, and training length, so the repository does not hard-code a single headline accuracy number.
+Measured on 2026-10-25 with the default settings of `python3 train.py`: seed 42, 30 epochs, batch size 16, 7 message-passing rounds, hidden size 64 (79,753 parameters). Training took about 19 minutes on an Apple M1 Pro (MPS). Scores are on the 1,000 test puzzles, which the model never sees during training. Each test puzzle has 32 to 41 givens (36.2 on average).
+
+| Rounds at inference     | Blank cells correct | Puzzles solved by the GNN |
+| ----------------------- | ------------------- | ------------------------- |
+| 1                       | 58.6%               | 0.0%                      |
+| 3                       | 98.4%               | 60.0%                     |
+| 7 (as trained)          | 99.95%              | 99.3%                     |
+| 16 (`solve.py` default) | 99.98%              | 99.8%                     |
+| 64                      | 99.98%              | 99.8%                     |
+
+At 16 rounds the GNN solves 998 of the 1,000 test puzzles, and the backtracking fallback in `solve.py` solves the other 2. Inference takes about 4 ms per puzzle on the M1 Pro CPU with all 1,000 puzzles in one batch.
+
+The weights are shared across rounds, so the model can run more rounds at inference than it was trained with, and extra rounds help until accuracy levels off. These numbers come from a single training run with one seed, so other hardware and seeds will differ slightly.
 
 ## License
 
