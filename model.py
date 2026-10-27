@@ -87,11 +87,11 @@ def collate(list_of_samples):
 
     Args:
         list_of_samples: list of (x, y) tuples where
-            x of shape (81, 9) — one-hot encoded puzzle cells.
-            y of shape (81,)  — target digit indices (0-8).
+            x of shape (81,) — digit indices, 0 = empty, 1-9 = given.
+            y of shape (81,) — target digit indices (0-8).
 
     Returns:
-        inputs  of shape (B*81, 9)
+        inputs  of shape (B*81,)
         targets of shape (B*81,)
         src_ids of shape (B*1620,)
         dst_ids of shape (B*1620,)
@@ -173,7 +173,7 @@ class GNN(nn.Module):
         """Run message-passing for n_iters iterations.
 
         Args:
-            node_inputs: (n_nodes, 10) — one-hot or (n_nodes,) — digit indices.
+            node_inputs: (n_nodes,) — digit indices, 0 = empty, 1-9 = given.
             src_ids:     (n_edges,) — source node indices.
             dst_ids:     (n_edges,) — destination node indices.
 
@@ -183,14 +183,8 @@ class GNN(nn.Module):
         n_nodes = node_inputs.size(0)
         device = node_inputs.device
 
-        # Convert one-hot to indices if necessary
-        if node_inputs.dim() > 1 and node_inputs.size(1) > 1:
-            node_indices = node_inputs.argmax(dim=1)
-        else:
-            node_indices = node_inputs.squeeze().long()
-
         # Embed initial board state
-        node_embeddings = self.embedding(node_indices)  # (N, H)
+        node_embeddings = self.embedding(node_inputs)  # (N, H)
         h = node_embeddings.clone()
 
         outputs = []
