@@ -7,7 +7,6 @@ authors = [
 ]
 dependencies = [
     "torch",
-    "torchvision",
     "matplotlib",
     "numpy",
 ]

@@ -4,17 +4,18 @@ data.py — Sudoku dataset loader.
 Downloads the sudoku dataset (features.pt + labels.pt) from powei.tw and
 wraps it as a PyTorch TensorDataset.
 
-  - Input x of shape (81, 9): One-hot encoded digits. Missing digits are
-    encoded as all-zeros.
+  - Input x of shape (81,): Digit indices, 0 for empty cells, 1-9 for givens.
   - Target y of shape (81,): Digit indices 0-8 for the solved puzzle.
 
 9,000 training samples and 1,000 test samples.
 """
 
 import os
+import urllib.request
+import zipfile
+
 import torch
 from torch.utils.data import TensorDataset
-from torchvision.datasets.utils import download_and_extract_archive
 
 
 class Sudoku(TensorDataset):
@@ -61,8 +62,11 @@ class Sudoku(TensorDataset):
         if self._check_integrity():
             return
         url = f"{self.download_url_prefix}/{self.zip_filename}"
+        archive = os.path.join(data_dir, self.zip_filename)
+        os.makedirs(data_dir, exist_ok=True)
         print(f"Downloading Sudoku dataset from {url} ...")
-        download_and_extract_archive(
-            url, data_dir, filename=self.zip_filename, remove_finished=True
-        )
+        urllib.request.urlretrieve(url, archive)
+        with zipfile.ZipFile(archive) as zf:
+            zf.extractall(data_dir)
+        os.remove(archive)
         print("Download complete.")

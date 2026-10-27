@@ -164,32 +164,32 @@ def _solve_with_backtracking(puzzle_str: str) -> Optional[str]:
     """Return an exact Sudoku solution for puzzle_str, or None if unsolved."""
     grid = [int(ch) for ch in puzzle_str.replace(".", "0").strip()]
 
-    def allowed(idx: int, val: int) -> bool:
+    def candidates(idx: int) -> set:
         r, c = divmod(idx, 9)
-        row = r * 9
-        if any(grid[row + cc] == val for cc in range(9)):
-            return False
-        if any(grid[rr * 9 + c] == val for rr in range(9)):
-            return False
         br, bc = (r // 3) * 3, (c // 3) * 3
-        for rr in range(br, br + 3):
-            for cc in range(bc, bc + 3):
-                if grid[rr * 9 + cc] == val:
-                    return False
-        return True
+        used = {grid[r * 9 + i] for i in range(9)} | {grid[i * 9 + c] for i in range(9)}
+        used |= {grid[rr * 9 + cc] for rr in range(br, br + 3) for cc in range(bc, bc + 3)}
+        return set(range(1, 10)) - used
 
     def search() -> bool:
-        try:
-            idx = grid.index(0)
-        except ValueError:
+        # Most constrained cell first; left-to-right order can run for hours on sparse puzzles.
+        best = None
+        for i, v in enumerate(grid):
+            if v == 0:
+                options = candidates(i)
+                if best is None or len(options) < len(best[1]):
+                    best = (i, options)
+                    if len(options) <= 1:
+                        break
+        if best is None:
             return True
 
-        for val in range(1, 10):
-            if allowed(idx, val):
-                grid[idx] = val
-                if search():
-                    return True
-                grid[idx] = 0
+        idx, options = best
+        for val in options:
+            grid[idx] = val
+            if search():
+                return True
+        grid[idx] = 0
         return False
 
     if search():
@@ -265,10 +265,10 @@ if __name__ == "__main__":
     else:
         status = "✗ INVALID (puzzle may be too hard or model needs more training)"
     print(f"\nSolution status: {status}\n")
+    if not is_valid:
+        sys.exit(1)
 
     if args.plot or args.steps:
-        import matplotlib
-        matplotlib.use("TkAgg") if sys.platform != "darwin" else None
         if args.steps:
             draw_solution_steps(outputs, board_from_string(puzzle_str))
         else:

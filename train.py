@@ -95,7 +95,7 @@ def train(args) -> None:
     optimizer = optim.Adam(gnn.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5)
 
-    best_frac = 0.0
+    best_frac = -1.0  # below any real score, so the first epoch always saves
     for epoch in range(1, args.epochs + 1):
         gnn.train()
         total_loss = 0.0
@@ -130,7 +130,7 @@ def train(args) -> None:
             print(f"  → Saved best model to {args.save} (val_frac={best_frac:.4f})")
 
     # Evaluate on test set
-    gnn.load_state_dict(torch.load(args.save, map_location=device))
+    gnn.load_state_dict(torch.load(args.save, map_location=device, weights_only=True))
     test_frac = fraction_solved(gnn, testloader, device)
     print(f"\nFinal Test Solved: {test_frac:.4f} ({test_frac*100:.1f}%)")
 

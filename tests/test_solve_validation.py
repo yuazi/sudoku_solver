@@ -6,6 +6,7 @@ from solve import (
     _check_solution,
     _givens_are_consistent,
     _respects_givens,
+    _solve_with_backtracking,
     _validate_puzzle_input,
     solve_puzzle,
 )
@@ -63,6 +64,20 @@ class SolveValidationTests(unittest.TestCase):
         gnn = DummyGNN(SOLVED)
         _outputs, _solution, is_valid = solve_puzzle(gnn, puzzle)
         self.assertFalse(is_valid)
+
+    def test_backtracking_solves_sparse_puzzle_quickly(self):
+        # 17 givens; filling cells left to right ran for over a minute on this one.
+        puzzle = "000000000000003085001020000000507000004000100090000000500000073002010000000040009"
+        solution = _solve_with_backtracking(puzzle)
+        self.assertIsNotNone(solution)
+        self.assertTrue(_check_solution(solution))
+        self.assertTrue(_respects_givens(puzzle, solution))
+
+    def test_backtracking_returns_none_for_unsolvable_puzzle(self):
+        # Givens don't clash, but row 1 can only take a 9 where column 9 already has one.
+        puzzle = "123456780" + "000000009" + "0" * 63
+        self.assertTrue(_givens_are_consistent(puzzle))
+        self.assertIsNone(_solve_with_backtracking(puzzle))
 
 
 if __name__ == "__main__":
